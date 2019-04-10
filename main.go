@@ -32,6 +32,10 @@ var jokes = []Joke{
 	Joke{7, 0, "How does a penguin build it's house? Igloos it together."},
 }
 
+type Response struct {
+	Message string `json:"message"`
+}
+
 // Jwks stores a slice of JSON Web Keys
 type Jwks struct {
 	Keys	[]JSONWebKeys `json:"keys"`
@@ -46,11 +50,13 @@ type JSONWebKeys struct {
 	X5c	[]string	`json:"x5c"`
 }
 
+var jwtMiddleWare *jwtmiddleware.JWTMiddleware
+
 func main() {
 	jwtMiddleware := jwtmiddleware.New(jwtmiddleware.Options{
 		ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
 			aud := os.Getenv("AUTH0_API_AUDIENCE")
-			checkAudience := token.Claims.(jwt.Mapclaims).VerifyAudience(aud, false)
+			checkAudience := token.Claims.(jwt.MapClaims).VerifyAudience(aud, false)
 			if !checkAudience {
 				return token, errors.New("Invalid audience.")
 			}
@@ -143,6 +149,14 @@ func authMiddleware() gin.HandlerFunc {
 func getPemCert(token *jwt.Token) (string, error) {
 	cert := ""
 	resp, err := http.Get(os.Getenv("AUTH0_DOMAIN") + ".well-known/jwks.json")
+	if err != nil {
+		return cert, err
+	}
+	defer resp.Body.Close()
+
+	var jwks = Jwks{}
+	err = json.NewDecoder(resp.Body).Decode(& jwks)
+
 	if err != nil {
 		return cert, err
 	}
