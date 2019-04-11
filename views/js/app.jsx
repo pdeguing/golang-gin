@@ -67,16 +67,35 @@ class App extends React.Component {
 }
 
 class Home extends React.Component {
+	constructor(props) {
+		super(props);
+		this.authenticate = this.authenticate.bind(this);
+	}
+
+	authenticate() {
+		this.WebAuth = new auth0.WebAuth({
+			domain: AUTH0_DOMAIN,
+			clientID: AUTH0_CLIENT_ID,
+			scope: "openid profile",
+			audience: AUTH0_API_AUDIENCE,
+			responseType: "token id_token",
+			redirectUri: AUTH0_CALLBACK_URL
+		});
+		this.WebAuth.authorize();
+	}
+
 	render () {
 		return (
 			<div className="container">
-				<div className="col-xs-8 col-xs-offset2 jumbotron text-center">
-					<h1>Jokeish</h1>
-					<p>A load of Dad jokes XD</p>
-					<p>Sign in to get access </p>
-					<a onClick={this.authenticate} className="btn btn-primary btn-lg btn-login btn-block">
-						Sign In
-					</a>
+				<div className="row">
+					<div className="col-xs-8 col-xs-offset2 jumbotron text-center">
+						<h1>Jokeish</h1>
+						<p>A load of Dad jokes XD</p>
+						<p>Sign in to get access </p>
+						<a onClick={this.authenticate} className="btn btn-primary btn-lg btn-login btn-block">
+							Sign In
+						</a>
+					</div>
 				</div>
 			</div>
 		)
@@ -88,27 +107,49 @@ class LoggedIn extends React.Component {
 		super(props);
 		this.state = {
 			jokes: []
-		}
+		};
+
+		this.serverRequest = this.serverRequest.bind(this);
+		this.logout = this.logout.bind(this);
+	}
+
+	logout() {
+		localStorage.removeItem("id_token");
+		localStorage.removeItem("access_token");
+		localStorage.removeItem("profile");
+		location.reload();
+	}
+
+	serverRequest() {
+		$.get("http://localhost:3000/api/jokes", res => {
+			this.setState({
+				jokes: res
+			});
+		});
+	}
+
+	componentDidMount() {
+		this.serverRequest();
 	}
 
 	render() {
 		return (
 			<div className="container">
-				<div className="col-lg-12">
-					<br/>
-					<span className="pull-right">
-						<a onClick={this.logout}>Log out</a>
-					</span>
-					<h2>Jokeish</h2>
-					<p>Let's feed you with some funny jokes!</p>
-					<div className="row">
+				<br/>
+				<span className="pull-right">
+					<a onClick={this.logout}>Log out</a>
+				</span>
+				<h2>Jokeish</h2>
+				<p>Let's feed you with some funny jokes!</p>
+				<div className="row">
+					<div className="container">
 						{this.state.jokes.map(function(joke, i){
 							return (<Joke key={i} joke={joke}/>);
 						})}
 					</div>
 				</div>
 			</div>
-		)
+		);
 	}
 }
 
@@ -116,12 +157,28 @@ class Joke extends React.Component {
 	constructor(props) {
 		super(props);
 		this.state = {
-			liked: ""
-		}
+			liked: "",
+			jokes: []
+		};
 		this.like = this.like.bind(this);
+		this.serverRequest = this.serverRequest.bind(this);
 	}
 
 	like () {
+		let joke = this.props.joke;
+		this.serverRequest(joke);
+	}
+
+	serverRequest(joke) {
+		$.post(
+			"http://localhost:3000/api/jokes/like/" + joke.id,
+			{like: 1},
+			res => {
+				console.log("res... ", res);
+				this.setState({liked: "Liked!", jokes : res});
+				this.props.jokes = res;
+			}
+		);
 	}
 
 	render() {
@@ -129,7 +186,7 @@ class Joke extends React.Component {
 			<div className="col-xs-4">
 				<div className="panel panel-default">
 					<div className="panel-heading">
-						#{this.props.joke.id}
+						#{this.props.joke.id}{" "}
 						<span ClassName="pull-right">
 							{this.state.liked}
 						</span>
@@ -138,7 +195,7 @@ class Joke extends React.Component {
 						{this.props.joke.joke}
 					</div>
 					<div className="panel-footer">
-						{this.props.joke.likes} Likes & nbsp;
+						{this.props.joke.likes} Likes &nbsp;
 						<a onClick={this.like} className="btn btn-default">
 							<span className="glyphicon glyphicon-thumbs-up">
 							</span>
