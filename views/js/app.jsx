@@ -142,11 +142,9 @@ class LoggedIn extends React.Component {
 				<h2>Jokeish</h2>
 				<p>Let's feed you with some funny jokes!</p>
 				<div className="row">
-					<div className="container">
-						{this.state.jokes.map(function(joke, i){
-							return (<Joke key={i} joke={joke}/>);
-						})}
-					</div>
+					{this.state.jokes.map(function(joke, i){
+						return (<Joke key={i} joke={joke}/>);
+					})}
 				</div>
 			</div>
 		);
@@ -183,7 +181,7 @@ class Joke extends React.Component {
 
 	render() {
 		return (
-			<div className="col-xs-4">
+			<div className="col-sm-6">
 				<div className="panel panel-default">
 					<div className="panel-heading">
 						#{this.props.joke.id}{" "}
